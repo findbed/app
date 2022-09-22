@@ -104,8 +104,47 @@ body {
         left: 0;
         transition: all 0.3s ease 0s;
     }
-    .icon-menu.active:before{
+
+    .icon-menu:before {
+        top: 0px;
+    }
+
+    .icon-menu.active span {
+        transform: scale(0);
+    }
+
+    .icon-menu.active:before {
+        transform: rotate(45deg);
+        top: 9px;
+    }
+
+    .icon-menu.active:after {
         transform: rotate(-45deg);
         top: 9px;
     }
+}
+
+.three-block {
+    margin: 0px 0px 30px 0px;
+}
+
+.three-block__row {
+    display: flex;
+    margin: 0px -15px;
+}
+
+.three-block__column {
+    flex: 0 1 33.333%;
+    padding: 0px 15px;
+}
+
+.three-block__item {
+    width: 370px;
+    background-color: #18b5a4;
+    padding: 15px;
+}
+
+.three-block__image {
+    padding: 0px 0px 58% 0px;
+    background-color: #ece89d;
 }
