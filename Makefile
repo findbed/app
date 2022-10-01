@@ -1,5 +1,52 @@
-test:
-	echo test
+REPO = github.com/findbed/app
+CWD = /go/src/$(REPO)
+IMG = registry.$(REPO)
+TAG = latest
+
+test: lint build
+
+lint:
+	@-docker run --rm -t -v $(CURDIR):$(CWD) -w $(CWD) \
+		-v $$HOME/.docker-go-cache:/go/pkg \
+		-e GOFLAGS=-mod=mod \
+		golangci/golangci-lint:latest-alpine sh -c '\
+			golangci-lint run ${LINT_FLAGS}'
+
+build: buildfs
+	@docker build -t $(IMG):$(TAG) .
+
+buildfs:
+	@docker run --rm \
+		-e CWD=$(CWD) \
+		-v $(CURDIR)/runner:/runner \
+		-v $(CURDIR)/buildfs:/build \
+		-v $(CURDIR):$(CWD) \
+		-v $$HOME/.docker-go-cache:/root/go/pkg \
+		-e TAG=$(TAG) \
+		-e GOFLAGS=-mod=mod \
+		imega/base-builder:1.9.9 \
+		--packages=" \
+			libcrypto3@main \
+			libssl3@main \
+			xh@edge-community \
+			ca-certificates \
+			busybox" \
+		-d=" \
+			openssh-client-default \
+			tzdata \
+			curl \
+			git \
+			go@community \
+			gcc \
+			alpine-sdk \
+		"
+
+clean:
+	@-GO_IMG=$(GO_IMG) CWD=$(CWD) docker-compose rm -sfv
+	@-docker run --rm -v $(CURDIR):/data -w /data alpine rm -rf buildfs
+
+release: test
+	@docker push $(IMG):$(TAG)
 
 zinc:
 	mkdir -p data
