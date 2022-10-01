@@ -46,7 +46,6 @@ clean:
 	@-docker run --rm -v $(CURDIR):/data -w /data alpine rm -rf buildfs
 
 release: test
-	@docker push $(IMG):$(TAG)
 
 zinc:
 	mkdir -p data
