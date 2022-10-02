@@ -32,6 +32,13 @@ func main() {
 		),
 	)
 
+	mux.HandleFunc(
+		"/",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("findbed.ru"))
+		},
+	)
+
 	httpSrv := httpserver.New(
 		appName,
 		httpserver.WithLogger(logger),
