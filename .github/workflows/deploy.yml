@@ -14,5 +14,5 @@ jobs:
         run: make release TAG=${GITHUB_SHA:0:12}
 
       - name: Cleanup
-        if: ${{ failure() || canceled() || always() }}
+        if: ${{ failure() || cancelled() || always() }}
         run: make clean
