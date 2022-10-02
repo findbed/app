@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/findbed/app/router"
 	"github.com/gin-gonic/gin"
 	"github.com/imega/daemon"
 	"github.com/imega/daemon/configuring/env"
@@ -21,19 +22,15 @@ const (
 func main() {
 	logger := wrapzerolog.New(zerolog.New(os.Stderr).With().Logger())
 
-	router := gin.New()
+	engine := gin.New()
+	engine.GET("/healthcheck", func(c *gin.Context) { c.Status(204) })
 
-	router.GET("/healthcheck", func(c *gin.Context) { c.Status(204) })
-
-	router.GET("/", func(c *gin.Context) {
-		c.Status(200)
-		c.Writer.Write([]byte("hello findbed"))
-	})
+	router.Web(engine)
 
 	httpSrv := httpserver.New(
 		appName,
 		httpserver.WithLogger(logger),
-		httpserver.WithHandler(router),
+		httpserver.WithHandler(engine),
 	)
 
 	confReader := env.Once(
