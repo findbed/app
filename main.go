@@ -1,13 +1,12 @@
 package main
 
 import (
-	"net/http"
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/imega/daemon"
 	"github.com/imega/daemon/configuring/env"
-	healthhttp "github.com/imega/daemon/health/http"
 	httpserver "github.com/imega/daemon/http-server"
 	"github.com/imega/daemon/logging/wrapzerolog"
 	"github.com/rs/zerolog"
@@ -22,27 +21,19 @@ const (
 func main() {
 	logger := wrapzerolog.New(zerolog.New(os.Stderr).With().Logger())
 
-	mux := http.NewServeMux()
-	mux.HandleFunc(
-		"/healthcheck",
-		healthhttp.HandlerFunc(
-			healthhttp.WithHealthCheckFuncs(
-				func() bool { return true },
-			),
-		),
-	)
+	router := gin.New()
 
-	mux.HandleFunc(
-		"/",
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("hello findbed"))
-		},
-	)
+	router.GET("/healthcheck", func(c *gin.Context) { c.Status(204) })
+
+	router.GET("/", func(c *gin.Context) {
+		c.Status(200)
+		c.Writer.Write([]byte("hello findbed"))
+	})
 
 	httpSrv := httpserver.New(
 		appName,
 		httpserver.WithLogger(logger),
-		httpserver.WithHandler(mux),
+		httpserver.WithHandler(router),
 	)
 
 	confReader := env.Once(
