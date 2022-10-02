@@ -18,4 +18,6 @@ jobs:
         run: make clean
 
       - name: Deploy
-        run: curl -s -v -X POST -H 'TOKEN:${{ secrets.DEPLOY_TOKEN }}' https://d.imega.ru -d '{"namespace":"findbed","project_name":"app","tag":"${{GITHUB_SHA:0:12}}"}'
+        run: |
+          curl -s -v -X POST -H 'TOKEN:${{ secrets.DEPLOY_TOKEN }}' https://d.imega.ru
+          -d "{\"namespace\":\"findbed\",\"project_name\":\"app\",\"tag\":\"${GITHUB_SHA:0:12}\"}"
