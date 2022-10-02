@@ -12,3 +12,7 @@ jobs:
 
       - name: Build&Test
         run: make release TAG=${GITHUB_SHA:0:12}
+
+      - name: Cleanup
+        if: ${{ failure() || canceled() || always() }}
+        run: make clean
