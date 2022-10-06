@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/findbed/app/router"
+	"github.com/findbed/app/web"
 	"github.com/gin-gonic/gin"
 	"github.com/imega/daemon"
 	"github.com/imega/daemon/configuring/env"
@@ -25,7 +25,7 @@ func main() {
 	engine := gin.New()
 	engine.GET("/healthcheck", func(c *gin.Context) { c.Status(204) })
 
-	router.Web(engine)
+	web.WebRouter(engine)
 
 	httpSrv := httpserver.New(
 		appName,
