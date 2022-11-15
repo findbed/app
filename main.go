@@ -52,6 +52,7 @@ const (
 func main() {
 	logger := wrapzerolog.New(zerolog.New(os.Stderr).With().Logger())
 
+	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.GET("/healthcheck", func(c *gin.Context) { c.Status(204) })
 

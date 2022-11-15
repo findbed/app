@@ -6,8 +6,10 @@ echo "Europe/Moscow" > $ROOTFS/etc/timezone
 cd $CWD
 CGO_ENABLED=0 go build -v -ldflags="-s -w" -o $ROOTFS/app . || exit 1
 
-cp -r web/assets $ROOTFS/assets
-cp -r web/views $ROOTFS/views
+mkdir -p $ROOTFS/web
+cp -r web/assets $ROOTFS/web/assets
+cp -r web/views $ROOTFS/web/views
+cp -r translations $ROOTFS/translations
 
 ARCH=$(uname -m)
 if [ "$ARCH" == "x86_64" ]; then
