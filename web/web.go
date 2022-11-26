@@ -73,20 +73,46 @@ func WebRouter(engine *gin.Engine) {
 		},
 	)
 	engine.HTMLRender = ginview.Wrap(basic)
+	goview.Use(basic)
 
 	engine.GET("/", setLocale(printer, localization), RootHandler)
+	engine.GET("/api/r", func(c *gin.Context) {
+		lng := c.DefaultQuery("lng", "ru")
+		c.JSON(200, gin.H{
+			"html": "sfsfg",
+			"lng":  lng,
+		})
+	})
 
 	engine.StaticFS("/assets", conf.MustFindBox("web/assets").HTTPBox())
 }
 
 func setLocale(printer *message.Printer, locale *l10n.L10N) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		lngHeader := ctx.GetHeader("Accept-Language")
-		lngTags, _, _ := language.ParseAcceptLanguage(lngHeader)
+		currency := ctx.Query("cur")
 
-		matcher := language.NewMatcher(lngTags)
-		lngTag, _, _ := matcher.Match()
+		var lngTag language.Tag
 
-		*printer = *message.NewPrinter(lngTag)
+		lang := ctx.Query("lng")
+		if lang == "" {
+			lngHeader := ctx.GetHeader("Accept-Language")
+			lngTags, _, err := language.ParseAcceptLanguage(lngHeader)
+			if err != nil {
+				log.Printf("failed to parse Accept-Language, %s", err)
+			}
+
+			matcher := language.NewMatcher(lngTags)
+			lngTag, _, _ = matcher.Match()
+
+			if lngTag.IsRoot() {
+				lngTag = language.English
+			}
+		} else {
+			lngTag, _ = language.Parse(lang)
+		}
+
+		ctx.Set("lng", lngTag.String())
+		ctx.Set("cur", currency)
+		ctx.Set("prt", message.NewPrinter(lngTag))
 	}
 }
