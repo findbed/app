@@ -16,6 +16,8 @@ require (
 )
 
 require (
+	github.com/bojanz/currency v1.0.6 // indirect
+	github.com/cockroachdb/apd/v3 v3.1.1 // indirect
 	github.com/daaku/go.zipexe v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect

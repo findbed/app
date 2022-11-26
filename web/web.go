@@ -55,8 +55,6 @@ func WebRouter(engine *gin.Engine) {
 
 	localization.MakeCatalog()
 
-	printer := message.NewPrinter(language.English)
-
 	basic := gorice.NewWithConfig(
 		conf.MustFindBox("web/views"),
 		goview.Config{
@@ -67,7 +65,6 @@ func WebRouter(engine *gin.Engine) {
 				"current_year": func() string {
 					return time.Now().Format("2006")
 				},
-				"l10n": printer.Sprintf,
 			},
 			DisableCache: false,
 		},
@@ -75,7 +72,7 @@ func WebRouter(engine *gin.Engine) {
 	engine.HTMLRender = ginview.Wrap(basic)
 	goview.Use(basic)
 
-	engine.GET("/", setLocale(printer, localization), RootHandler)
+	engine.GET("/", setLocale(localization), RootHandler)
 	engine.GET("/api/r", func(c *gin.Context) {
 		lng := c.DefaultQuery("lng", "ru")
 		c.JSON(200, gin.H{
@@ -87,7 +84,7 @@ func WebRouter(engine *gin.Engine) {
 	engine.StaticFS("/assets", conf.MustFindBox("web/assets").HTTPBox())
 }
 
-func setLocale(printer *message.Printer, locale *l10n.L10N) gin.HandlerFunc {
+func setLocale(locale *l10n.L10N) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		currency := ctx.Query("cur")
 
