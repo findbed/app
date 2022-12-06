@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import merge from "./lodash/merge";
+// import merge from "./lodash/merge";
+import merge from "./deepmerge";
 
 const interpolate = (template, data_source = {}) => {
     const names = Object.keys(data_source);

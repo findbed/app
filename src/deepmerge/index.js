@@ -1,4 +1,4 @@
-var defaultIsMergeableObject = require("is-mergeable-object");
+var defaultIsMergeableObject = require("../is-mergeable-object");
 
 function emptyTarget(val) {
     return Array.isArray(val) ? [] : {};
