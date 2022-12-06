@@ -1,0 +1,14 @@
+<table>
+    <tr>
+        <td>{{ call $.l10n "location" }}</td>
+        <td>{{ .country }}</td>
+    </tr>
+    <tr>
+        <td>{{ call $.l10n "price" }}</td>
+        <td>{{ call $.money "1000.95" "USD" }}</td>
+    </tr>
+</table>
+<template id="ct">
+    <p>${id}</id>
+    <p>${country}</p>
+</template>

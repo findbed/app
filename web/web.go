@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -26,34 +27,65 @@ func WebRouter(engine *gin.Engine) {
 
 	localization := l10n.New2()
 	translationsBox := conf.MustFindBox("translations")
-	translationsBox.Walk("/", func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
+	translationsBox.Walk(
+		"/",
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+
+			if info.IsDir() || !strings.HasSuffix(info.Name(), ".ftl") {
+				return nil
+			}
+
+			fileName := info.Name()
+
+			file, err := translationsBox.Open(fileName)
+			if err != nil {
+				return fmt.Errorf("failed to open translate, %w", err)
+			}
+
+			dict, err := l10n.LoadDict(file)
+			if err != nil {
+				return fmt.Errorf("failed to load dictionary, %w", err)
+			}
+
+			localization.AddDict(
+				fileName[:len(fileName)-len(filepath.Ext(fileName))],
+				dict,
+			)
+
 			return nil
-		}
-
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".ftl") {
-			return nil
-		}
-
-		fileName := info.Name()
-		log.Printf("info: %s", fileName[:len(fileName)-len(filepath.Ext(fileName))])
-
-		file, err := translationsBox.Open(fileName)
-		if err != nil {
-			return fmt.Errorf("failed to open translate, %w", err)
-		}
-
-		dict, err := l10n.LoadDict(file)
-		if err != nil {
-			return fmt.Errorf("failed to load dictionary, %w", err)
-		}
-
-		localization.AddDict(fileName[:len(fileName)-len(filepath.Ext(fileName))], dict)
-
-		return nil
-	})
+		},
+	)
 
 	localization.MakeCatalog()
+
+	assets := conf.MustFindBox("assets")
+
+	styleBundle := "style.css"
+	jsBundle := "index.js"
+
+	meta := assets.MustBytes("meta.json")
+
+	var metaData map[string]interface{}
+	if err := json.Unmarshal(meta, &metaData); err != nil {
+		log.Fatalf("failed to unmarshal meta-data, %s", err)
+	}
+
+	if outputRaw, ok := metaData["outputs"]; ok {
+		if output, ok := outputRaw.(map[string]interface{}); ok {
+			for i := range output {
+				if strings.Contains(i, ".js") {
+					jsBundle = i
+				}
+
+				if strings.Contains(i, ".css") {
+					styleBundle = i
+				}
+			}
+		}
+	}
 
 	basic := gorice.NewWithConfig(
 		conf.MustFindBox("web/views"),
@@ -65,23 +97,25 @@ func WebRouter(engine *gin.Engine) {
 				"current_year": func() string {
 					return time.Now().Format("2006")
 				},
+				"styleBundle": func() string {
+					return styleBundle
+				},
+				"jsBundle": func() string {
+					return jsBundle
+				},
 			},
 			DisableCache: false,
 		},
 	)
-	engine.HTMLRender = ginview.Wrap(basic)
+
 	goview.Use(basic)
+	basic.SetFileHandler(minifyTemplate())
+
+	engine.HTMLRender = ginview.Wrap(basic)
 
 	engine.GET("/", setLocale(localization), RootHandler)
-	engine.GET("/api/r", func(c *gin.Context) {
-		lng := c.DefaultQuery("lng", "ru")
-		c.JSON(200, gin.H{
-			"html": "sfsfg",
-			"lng":  lng,
-		})
-	})
 
-	engine.StaticFS("/assets", conf.MustFindBox("web/assets").HTTPBox())
+	engine.StaticFS("/assets", assets.HTTPBox())
 }
 
 func setLocale(locale *l10n.L10N) gin.HandlerFunc {

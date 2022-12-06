@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/findbed/app/api"
 	"github.com/findbed/app/web"
 	"github.com/gin-gonic/gin"
 	"github.com/imega/daemon"
@@ -57,6 +58,7 @@ func main() {
 	engine.GET("/healthcheck", func(c *gin.Context) { c.Status(204) })
 
 	web.WebRouter(engine)
+	api.APIRouter(engine)
 
 	httpSrv := httpserver.New(
 		appName,

@@ -1,8 +1,11 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>{{ .title }}</title>
+        <link media="all" rel="stylesheet" href="/{{ styleBundle }}">
     </head>
     <body>
         {{ template "content" . }}
+        <script src="/{{ jsBundle }}"></script>
     </body>
 </html>
