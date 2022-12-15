@@ -1,0 +1,2 @@
+[mysqld]
+net_buffer_length=1K
