@@ -22,6 +22,8 @@ require (
 )
 
 require (
+	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
+	github.com/casbin/casbin/v2 v2.60.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.1.1 // indirect
 	github.com/daaku/go.zipexe v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
