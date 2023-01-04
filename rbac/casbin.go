@@ -27,19 +27,20 @@ import (
 )
 
 type Controller struct {
-	retrier  domain.Retrier
-	db       isql.DB
-	enforcer *casbin.Enforcer
-	logger   logging.Logger
+	retrier   domain.Retrier
+	db        isql.DB
+	enforcer  *casbin.CachedEnforcer
+	logger    logging.Logger
+	isHealthy bool
 }
 
-func New(opts ...Option) (*Controller, error) {
-	enforcer, err := casbin.NewEnforcer()
-	if err != nil {
-		return nil, fmt.Errorf("failed to make RBAC, %w", err)
-	}
+func New(opts ...Option) *Controller {
+	enforcer, _ := casbin.NewCachedEnforcer()
 
-	ctrl := &Controller{enforcer: enforcer}
+	ctrl := &Controller{
+		enforcer: enforcer,
+		logger:   logging.GetNoopLog(),
+	}
 
 	for _, opt := range opts {
 		opt(ctrl)
@@ -58,6 +59,8 @@ func New(opts ...Option) (*Controller, error) {
 			return fmt.Errorf("failed to init model and adapter, %w", err)
 		}
 
+		ctrl.isHealthy = true
+
 		return nil
 	}
 
@@ -65,20 +68,31 @@ func New(opts ...Option) (*Controller, error) {
 		ctrl.logger.Infof("%s, retrying in %s...", err, next)
 	}
 
-	if err := ctrl.retrier.Retry(ctx, operation, notifyFn); err != nil {
-		return nil, fmt.Errorf("%w", err)
-	}
+	go func() {
+		if err := ctrl.retrier.Retry(ctx, operation, notifyFn); err != nil {
+			ctrl.logger.Errorf("%s", err)
 
-	return ctrl, nil
+			return
+		}
+	}()
+
+	return ctrl
+}
+
+func (ctrl *Controller) GetHealthStatus() bool {
+	return ctrl.isHealthy
 }
 
 func makeModel() model.Model {
 	m := model.NewModel()
-	m.AddDef("r", "r", "sub, obj, act")
-	m.AddDef("p", "p", "sub, obj, act")
-	m.AddDef("g", "g", "_, _")
+	m.AddDef("r", "r", "sub, dom, obj, act")
+	m.AddDef("p", "p", "sub, dom, obj, act")
+	m.AddDef("g", "g", "_, _, _")
 	m.AddDef("e", "e", "some(where (p.eft == allow))")
-	m.AddDef("m", "m", "g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act")
+	m.AddDef("m", "m", `g(r.sub, p.sub, r.dom) && `+
+		`r.dom == p.dom && `+
+		`(r.obj == p.obj || p.obj == '*') && `+
+		`( r.act == p.act || p.act == '*')`)
 
 	return m
 }
@@ -94,5 +108,11 @@ func WithRetrier(retrier domain.Retrier) Option {
 func WithDB(db isql.DB) Option {
 	return func(ctrl *Controller) {
 		ctrl.db = db
+	}
+}
+
+func WithLogger(logger logging.Logger) Option {
+	return func(ctrl *Controller) {
+		ctrl.logger = logger
 	}
 }

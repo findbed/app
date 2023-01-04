@@ -17,6 +17,7 @@ package rbac
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/casbin/casbin/v2/model"
@@ -40,18 +41,120 @@ func (unit *Storage) Ping(ctx context.Context) error {
 
 // LoadPolicy loads all policy rules from the storage.
 func (unit *Storage) LoadPolicy(model model.Model) error {
+	ctx := context.Background()
+
+	records, err := list(ctx, unit.DB, 1)
+	if err != nil {
+		return fmt.Errorf("failed to get type p rules, %w", err)
+	}
+
+	model.AddPolicies("p", "p", records2rules(records))
+
+	records, err = list(ctx, unit.DB, 2)
+	if err != nil {
+		return fmt.Errorf("failed to get type g rules, %w", err)
+	}
+
+	model.AddPolicies("g", "g", records2rules(records))
+
 	return nil
+}
+
+func records2rules(records []record) [][]string {
+	rules := make([][]string, len(records))
+	for idx, rec := range records {
+		if rec.V3 != nil {
+			rules[idx] = []string{
+				strconv.FormatUint(rec.V0, 10),
+				strconv.FormatUint(rec.V1, 10),
+				applyStarAccess(rec.V2),
+				applyStarAccess(rec.V3),
+			}
+
+			continue
+		}
+
+		rules[idx] = []string{
+			strconv.FormatUint(rec.V0, 10),
+			strconv.FormatUint(rec.V1, 10),
+			applyStarAccess(rec.V2),
+		}
+	}
+
+	return rules
+}
+
+func applyStarAccess(val *uint64) string {
+	if *val == 0 {
+		return "*"
+	}
+
+	return strconv.FormatUint(*val, 10)
 }
 
 // SavePolicy saves all policy rules to the storage.
 func (unit *Storage) SavePolicy(model model.Model) error {
+	// b := model.GetPolicy()
+	a := 1
+	_ = a
+	_ = model
+
 	return nil
 }
 
 // AddPolicy adds a policy rule to the storage.
 // This is part of the Auto-Save feature.
 func (unit *Storage) AddPolicy(sec, ptype string, rule []string) error {
+	// txw := txwrapper.New(unit.DB)
+	ctx := context.Background()
+
+	// if err := txw.StartTx(ctx, nil); err != nil {
+	// 	return fmt.Errorf("failed to make a transaction, %w", err)
+	// }
+
+	rec, err := policy2record(ptype, rule)
+	if err != nil {
+		return fmt.Errorf("failed to convert a policy to a record, %w", err)
+	}
+
+	// err = add(ctx, txw.Tx(), rec)
+	// txw.Error(err)
+
+	// if err := txw.TransactionEnd(); err != nil {
+	// 	return fmt.Errorf("failed to commit a transaction, %w", err)
+	// }
+
+	if err := add(ctx, unit.DB, rec); err != nil {
+		return fmt.Errorf("failed to add a record, %w", err)
+	}
+
 	return nil
+}
+
+func policy2record(ptype string, rule []string) (record, error) {
+	ptypeRaw := uint8(1)
+	if ptype == "g" {
+		ptypeRaw = 2
+	}
+
+	values := make([]uint64, 5)
+	for idx := range rule {
+		number, err := strconv.ParseUint(rule[idx], 10, 64)
+		if err != nil {
+			return record{},
+				fmt.Errorf("failed to convert a string to number, %w", err)
+		}
+
+		values[idx] = number
+	}
+
+	return record{
+		PType: ptypeRaw,
+		V0:    values[0],
+		V1:    values[1],
+		V2:    &values[2],
+		V3:    &values[3],
+	}, nil
 }
 
 // RemovePolicy removes a policy rule from the storage.
