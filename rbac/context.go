@@ -37,10 +37,10 @@ func WithSubject(
 func (ctrl *Controller) SubjectFromContext(
 	ctx context.Context,
 ) domain.AccessSubject {
-	role, ok := ctx.Value(subjectCtxKey).(domain.AccessSubject)
+	subject, ok := ctx.Value(subjectCtxKey).(domain.AccessSubject)
 	if !ok {
 		return 0
 	}
 
-	return role
+	return subject
 }

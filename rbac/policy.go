@@ -54,8 +54,16 @@ func policy2policyParams(
 
 	res[0] = strconv.FormatUint(uint64(subject), 10)
 	res[1] = strconv.FormatUint(uint64(policy.Domain), 10)
-	res[2] = strconv.FormatUint(uint64(policy.Object), 10)
-	res[3] = strconv.FormatUint(uint64(policy.Action), 10)
+
+	res[2] = "*"
+	if policy.Object > 0 {
+		res[2] = strconv.FormatUint(uint64(policy.Object), 10)
+	}
+
+	res[3] = "*"
+	if policy.Action > 0 {
+		res[3] = strconv.FormatUint(uint64(policy.Action), 10)
+	}
 
 	return res
 }
@@ -64,9 +72,12 @@ func (ctrl *Controller) AddGrouppingPolicy(
 	ctx context.Context,
 	policy domain.GrouppingPolicy,
 ) error {
-	subject := ctrl.SubjectFromContext(ctx)
-	if subject == domain.AccessSubjectUnknowUser {
-		return domain.ErrUnknowUser
+	subject := policy.Subject
+	if subject == 0 {
+		subject = ctrl.SubjectFromContext(ctx)
+		if subject == domain.AccessSubjectUnknowUser {
+			return domain.ErrUnknowUser
+		}
 	}
 
 	isAdded, err := ctrl.enforcer.AddGroupingPolicy(

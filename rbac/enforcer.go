@@ -37,25 +37,15 @@ func (ctrl *Controller) Enforce(
 		return domain.Deny, nil
 	}
 
-	if dom == 0 {
+	if dom == 0 || obj == 0 || act == 0 {
 		return domain.Deny, nil
-	}
-
-	object := "*"
-	if obj > 0 {
-		object = strconv.FormatUint(uint64(obj), 10)
-	}
-
-	action := "*"
-	if act > 0 {
-		action = strconv.FormatUint(uint64(act), 10)
 	}
 
 	isAllowed, err := ctrl.enforcer.Enforce(
 		strconv.FormatUint(uint64(subject), 10),
 		strconv.FormatUint(uint64(dom), 10),
-		object,
-		action,
+		strconv.FormatUint(uint64(obj), 10),
+		strconv.FormatUint(uint64(act), 10),
 	)
 	if err != nil {
 		return domain.Deny, fmt.Errorf("failed to enforce a rule, %w", err)

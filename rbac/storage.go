@@ -24,6 +24,15 @@ import (
 	"github.com/findbed/app/isql"
 )
 
+const (
+	lengthPolicy         = 4
+	ptypePolicy          = 1
+	ptypeGrouppingPolicy = 2
+	codePolicy           = "p"
+	codeGrouppingPolicy  = "g"
+	star                 = "*"
+)
+
 type Storage struct {
 	DB isql.DB
 }
@@ -48,14 +57,18 @@ func (unit *Storage) LoadPolicy(model model.Model) error {
 		return fmt.Errorf("failed to get type p rules, %w", err)
 	}
 
-	model.AddPolicies("p", "p", records2rules(records))
+	model.AddPolicies(codePolicy, codePolicy, records2rules(records))
 
 	records, err = list(ctx, unit.DB, 2)
 	if err != nil {
 		return fmt.Errorf("failed to get type g rules, %w", err)
 	}
 
-	model.AddPolicies("g", "g", records2rules(records))
+	model.AddPolicies(
+		codeGrouppingPolicy,
+		codeGrouppingPolicy,
+		records2rules(records),
+	)
 
 	return nil
 }
@@ -86,7 +99,7 @@ func records2rules(records []record) [][]string {
 
 func applyStarAccess(val *uint64) string {
 	if *val == 0 {
-		return "*"
+		return star
 	}
 
 	return strconv.FormatUint(*val, 10)
@@ -132,13 +145,19 @@ func (unit *Storage) AddPolicy(sec, ptype string, rule []string) error {
 }
 
 func policy2record(ptype string, rule []string) (record, error) {
-	ptypeRaw := uint8(1)
-	if ptype == "g" {
-		ptypeRaw = 2
+	ptypeRaw := uint8(ptypePolicy)
+	if ptype == codeGrouppingPolicy {
+		ptypeRaw = ptypeGrouppingPolicy
 	}
 
-	values := make([]uint64, 5)
+	values := make([]uint64, lengthPolicy)
 	for idx := range rule {
+		if rule[idx] == star {
+			values[idx] = 0
+
+			continue
+		}
+
 		number, err := strconv.ParseUint(rule[idx], 10, 64)
 		if err != nil {
 			return record{},
@@ -148,13 +167,18 @@ func policy2record(ptype string, rule []string) (record, error) {
 		values[idx] = number
 	}
 
-	return record{
+	rec := record{
 		PType: ptypeRaw,
 		V0:    values[0],
 		V1:    values[1],
 		V2:    &values[2],
-		V3:    &values[3],
-	}, nil
+	}
+
+	if len(rule) == lengthPolicy {
+		rec.V3 = &values[3]
+	}
+
+	return rec, nil
 }
 
 // RemovePolicy removes a policy rule from the storage.

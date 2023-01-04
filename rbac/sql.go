@@ -57,7 +57,7 @@ func add(ctx context.Context, db isql.Stmt, rec record) error {
 func list(ctx context.Context, db isql.Stmt, ptype uint8) ([]record, error) {
 	q := `select ptype, v0, v1, v2, v3
 			from casbin_rules
-		   where ptype = ?
+		   where ptype = ? and deleted = 0
 	`
 
 	rows, err := db.QueryContext(ctx, q, ptype)

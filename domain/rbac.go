@@ -27,11 +27,11 @@ type AccessController interface {
 		AccessAction,
 	) (IsAllowed, error)
 
-	RoleFromContext(context.Context) AccessRole
-	// WithRole(context.Context, AccessRole) context.Context
-	//
 	AddPolicy(context.Context, Policy) error
+	RemovePolicy(context.Context, Policy) error
+
 	AddGrouppingPolicy(context.Context, GrouppingPolicy) error
+	RemoveGrouppingPolicy(context.Context, GrouppingPolicy) error
 }
 
 type Policy struct {
@@ -43,7 +43,7 @@ type Policy struct {
 
 type GrouppingPolicy struct {
 	Subject AccessSubject
-	Role    AccessRole
+	Role    AccessSubject
 	Domain  AccessDomain
 }
 
@@ -62,29 +62,24 @@ var (
 
 type AccessSubject LongID
 
-const AccessSubjectUnknowUser AccessSubject = 0
-
-type AccessRole uint8
-
 const (
-	AccessRoleUnknow AccessRole = iota
+	AccessSubjectUnknowUser AccessSubject = iota
 	AccessRoleAdmin
 	AccessRoleOperator
 )
 
 type AccessAction uint8
 
-const AnyAction AccessAction = 0
-
 const (
-	AccessActionRead AccessAction = iota + 1
+	AccessActionAny AccessAction = iota
+	AccessActionRead
 	AccessActionWrite
 	AccessActionRemove
 )
 
 type AccessObject LongID
 
-const AnyObject AccessObject = 0
+const AccessObjectAny AccessObject = 0
 
 type AccessDomain uint8
 
