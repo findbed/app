@@ -183,20 +183,103 @@ func TestRBAC(t *testing.T) {
 		assert.Equal(t, domain.Allow, actual)
 	})
 
-	rows, err := curDB.Query("select * from casbin_rules")
+	t.Run("rule was removed", func(t *testing.T) {
+		ctx := context.Background()
+		policy := domain.Policy{
+			Subject: domain.AccessSubject(gofakeit.Uint32()),
+			Domain:  domain.AccessDomainChat,
+			Object:  domain.AccessObject(gofakeit.Uint32()),
+			Action:  domain.AccessActionRead,
+		}
+
+		err = ctrl.AddPolicy(ctx, policy)
+		require.NoError(t, err)
+
+		nctx := rbac.WithSubject(context.Background(), policy.Subject)
+		actual, err := ctrl.Enforce(
+			nctx,
+			policy.Domain,
+			policy.Object,
+			policy.Action,
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, domain.Allow, actual)
+
+		err = ctrl.RemovePolicy(ctx, policy)
+		require.NoError(t, err)
+
+		actual, err = ctrl.Enforce(
+			nctx,
+			policy.Domain,
+			policy.Object,
+			policy.Action,
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, domain.Deny, actual)
+	})
+
+	t.Run("group rule was removed", func(t *testing.T) {
+		ctx := context.Background()
+
+		groupPolicy := domain.GrouppingPolicy{
+			Subject: domain.AccessSubject(gofakeit.Uint32()),
+			Role:    domain.AccessRoleAdmin,
+		}
+		err = ctrl.AddGrouppingPolicy(ctx, groupPolicy)
+		require.NoError(t, err)
+
+		policy := domain.Policy{
+			Subject: groupPolicy.Role,
+			Domain:  domain.AccessDomainChat,
+			Object:  domain.AccessObject(gofakeit.Uint32()),
+			Action:  domain.AccessActionRead,
+		}
+
+		err = ctrl.AddPolicy(ctx, policy)
+		require.NoError(t, err)
+
+		nctx := rbac.WithSubject(context.Background(), groupPolicy.Subject)
+		actual, err := ctrl.Enforce(
+			nctx,
+			policy.Domain,
+			policy.Object,
+			policy.Action,
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, domain.Allow, actual)
+
+		err = ctrl.RemoveGrouppingPolicy(ctx, groupPolicy)
+		require.NoError(t, err)
+
+		actual, err = ctrl.Enforce(
+			nctx,
+			policy.Domain,
+			policy.Object,
+			policy.Action,
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, domain.Deny, actual)
+	})
+
+	rows, err := curDB.Query("select ptype,v0,v1,v2,v3,deleted from casbin_rules")
 	require.NoError(t, err)
 	defer rows.Close()
 	for rows.Next() {
 		var rec struct {
-			id    uint64
-			ptype int64
-			v0    int64
-			v1    int64
-			v2    sql.NullInt64
-			v3    sql.NullInt64
+			id      uint64
+			ptype   int64
+			v0      int64
+			v1      int64
+			v2      sql.NullInt64
+			v3      sql.NullInt64
+			deleted bool
 		}
 
-		err := rows.Scan(&rec.id, &rec.ptype, &rec.v0, &rec.v1, &rec.v2, &rec.v3)
+		err := rows.Scan(&rec.ptype, &rec.v0, &rec.v1, &rec.v2, &rec.v3, &rec.deleted)
 		require.NoError(t, err)
 
 		v3 := "*"
@@ -215,7 +298,7 @@ func TestRBAC(t *testing.T) {
 			}
 		}
 
-		fmt.Printf("|%2d|%10d|%4d|%10s|%2s|\n", rec.ptype, rec.v0, rec.v1, v2, v3)
+		fmt.Printf("|%2d|%10d|%4d|%10s|%2s|%5v|\n", rec.ptype, rec.v0, rec.v1, v2, v3, rec.deleted)
 	}
 }
 

@@ -135,7 +135,7 @@ func policy2record(ptype string, rule []string) (record, error) {
 		ptypeRaw = ptypeGrouppingPolicy
 	}
 
-	values := make([]uint64, lengthPolicy)
+	values := make([]uint64, len(rule))
 	for idx := range rule {
 		if rule[idx] == star {
 			values[idx] = 0
@@ -156,10 +156,10 @@ func policy2record(ptype string, rule []string) (record, error) {
 		PType: ptypeRaw,
 		V0:    values[0],
 		V1:    values[1],
-		V2:    &values[2],
 	}
 
 	if len(rule) == lengthPolicy {
+		rec.V2 = &values[2]
 		rec.V3 = &values[3]
 	}
 

@@ -39,7 +39,7 @@ func (ctrl *Controller) SubjectFromContext(
 ) domain.AccessSubject {
 	subject, ok := ctx.Value(subjectCtxKey).(domain.AccessSubject)
 	if !ok {
-		return 0
+		return domain.AccessSubjectUnknowUser
 	}
 
 	return subject

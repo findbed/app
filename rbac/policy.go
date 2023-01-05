@@ -26,12 +26,9 @@ func (ctrl *Controller) AddPolicy(
 	ctx context.Context,
 	policy domain.Policy,
 ) error {
-	subject := policy.Subject
-	if subject == 0 {
-		subject = ctrl.SubjectFromContext(ctx)
-		if subject == domain.AccessSubjectUnknowUser {
-			return domain.ErrUnknowUser
-		}
+	subject := ctrl.getSubject(ctx, policy.Subject)
+	if subject == domain.AccessSubjectUnknowUser {
+		return domain.ErrUnknowUser
 	}
 
 	isAdded, err := ctrl.enforcer.AddPolicy(policy2policyParams(subject, policy))
@@ -72,12 +69,9 @@ func (ctrl *Controller) AddGrouppingPolicy(
 	ctx context.Context,
 	policy domain.GrouppingPolicy,
 ) error {
-	subject := policy.Subject
-	if subject == 0 {
-		subject = ctrl.SubjectFromContext(ctx)
-		if subject == domain.AccessSubjectUnknowUser {
-			return domain.ErrUnknowUser
-		}
+	subject := ctrl.getSubject(ctx, policy.Subject)
+	if subject == domain.AccessSubjectUnknowUser {
+		return domain.ErrUnknowUser
 	}
 
 	isAdded, err := ctrl.enforcer.AddGroupingPolicy(
@@ -104,4 +98,65 @@ func policy2grouppingPolicyParams(
 	res[1] = strconv.FormatInt(int64(policy.Role), 10)
 
 	return res
+}
+
+func (ctrl *Controller) RemovePolicy(
+	ctx context.Context,
+	policy domain.Policy,
+) error {
+	subject := ctrl.getSubject(ctx, policy.Subject)
+	if subject == domain.AccessSubjectUnknowUser {
+		return domain.ErrUnknowUser
+	}
+
+	a := policy2policyParams(subject, policy)
+	_, err := ctrl.enforcer.RemovePolicy(
+		// the function getting cache of casbin doesn't work correct with []string
+		a[0], a[1], a[2], a[3],
+	)
+	if err != nil {
+		return fmt.Errorf("failed to remove a policy, %w", err)
+	}
+
+	return nil
+}
+
+func (ctrl *Controller) RemoveGrouppingPolicy(
+	ctx context.Context,
+	policy domain.GrouppingPolicy,
+) error {
+	subject := ctrl.getSubject(ctx, policy.Subject)
+	if subject == domain.AccessSubjectUnknowUser {
+		return domain.ErrUnknowUser
+	}
+
+	_, err := ctrl.enforcer.RemoveGroupingPolicy(
+		policy2grouppingPolicyParams(subject, policy),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to remove a groupping policy, %w", err)
+	}
+
+	a := policy2policyParams(subject, domain.Policy{Subject: subject})
+	_, err = ctrl.enforcer.RemovePolicy(
+		// the function getting cache of casbin doesn't work correct with []string
+		a[0],
+	)
+	if err != nil {
+		return fmt.Errorf("failed to remove a policy, %w", err)
+	}
+
+	return nil
+}
+
+func (ctrl *Controller) getSubject(
+	ctx context.Context,
+	sub domain.AccessSubject,
+) domain.AccessSubject {
+	subject := sub
+	if subject == domain.AccessSubjectUnknowUser {
+		return ctrl.SubjectFromContext(ctx)
+	}
+
+	return subject
 }

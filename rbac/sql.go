@@ -55,8 +55,12 @@ func add(ctx context.Context, db isql.Stmt, rec record) error {
 }
 
 func remove(ctx context.Context, db isql.Stmt, rec record) error {
-	query := `update casbin_rules set delete = 0
-				where ptype =?  and v0 = ? and v1 = ? and v2 = ? and v3 = ?`
+	query := `update casbin_rules set deleted = 1
+				where ptype = ? and v0 = ? and v1 = ?`
+
+	if rec.V2 != nil && rec.V3 != nil {
+		query += ` and v2 = ? and v3 = ?`
+	}
 
 	res, err := db.ExecContext(
 		ctx,
