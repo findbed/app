@@ -157,7 +157,6 @@ func TestRBAC(t *testing.T) {
 		groupPolicy := domain.GrouppingPolicy{
 			Subject: domain.AccessSubject(gofakeit.Uint32()),
 			Role:    domain.AccessRoleAdmin,
-			Domain:  domain.AccessDomainDwelling,
 		}
 		err = ctrl.AddGrouppingPolicy(ctx, groupPolicy)
 		require.NoError(t, err)

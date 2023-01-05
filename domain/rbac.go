@@ -44,7 +44,6 @@ type Policy struct {
 type GrouppingPolicy struct {
 	Subject AccessSubject
 	Role    AccessSubject
-	Domain  AccessDomain
 }
 
 type IsAllowed bool

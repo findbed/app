@@ -87,9 +87,9 @@ func makeModel() model.Model {
 	m := model.NewModel()
 	m.AddDef("r", "r", "sub, dom, obj, act")
 	m.AddDef("p", "p", "sub, dom, obj, act")
-	m.AddDef("g", "g", "_, _, _")
+	m.AddDef("g", "g", "_, _")
 	m.AddDef("e", "e", "some(where (p.eft == allow))")
-	m.AddDef("m", "m", `g(r.sub, p.sub, r.dom) && `+
+	m.AddDef("m", "m", `g(r.sub, p.sub) && `+
 		`r.dom == p.dom && `+
 		`(r.obj == p.obj || p.obj == '*') && `+
 		`( r.act == p.act || p.act == '*')`)

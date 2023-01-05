@@ -98,11 +98,10 @@ func policy2grouppingPolicyParams(
 	subject domain.AccessSubject,
 	policy domain.GrouppingPolicy,
 ) []string {
-	res := make([]string, 3)
+	res := make([]string, 2)
 
 	res[0] = strconv.FormatInt(int64(subject), 10)
 	res[1] = strconv.FormatInt(int64(policy.Role), 10)
-	res[2] = strconv.FormatInt(int64(policy.Domain), 10)
 
 	return res
 }
