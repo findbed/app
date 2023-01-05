@@ -16,12 +16,14 @@ package rbac
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/casbin/casbin/v2/model"
 	"github.com/findbed/app/isql"
+	"github.com/findbed/app/txwrapper"
 )
 
 const (
@@ -107,35 +109,18 @@ func applyStarAccess(val *uint64) string {
 
 // SavePolicy saves all policy rules to the storage.
 func (unit *Storage) SavePolicy(model model.Model) error {
-	// b := model.GetPolicy()
-	a := 1
-	_ = a
-	_ = model
-
-	return nil
+	return errors.New("not implemented")
 }
 
 // AddPolicy adds a policy rule to the storage.
 // This is part of the Auto-Save feature.
 func (unit *Storage) AddPolicy(sec, ptype string, rule []string) error {
-	// txw := txwrapper.New(unit.DB)
 	ctx := context.Background()
-
-	// if err := txw.StartTx(ctx, nil); err != nil {
-	// 	return fmt.Errorf("failed to make a transaction, %w", err)
-	// }
 
 	rec, err := policy2record(ptype, rule)
 	if err != nil {
 		return fmt.Errorf("failed to convert a policy to a record, %w", err)
 	}
-
-	// err = add(ctx, txw.Tx(), rec)
-	// txw.Error(err)
-
-	// if err := txw.TransactionEnd(); err != nil {
-	// 	return fmt.Errorf("failed to commit a transaction, %w", err)
-	// }
 
 	if err := add(ctx, unit.DB, rec); err != nil {
 		return fmt.Errorf("failed to add a record, %w", err)
@@ -184,6 +169,17 @@ func policy2record(ptype string, rule []string) (record, error) {
 // RemovePolicy removes a policy rule from the storage.
 // This is part of the Auto-Save feature.
 func (unit *Storage) RemovePolicy(sec, ptype string, rule []string) error {
+	ctx := context.Background()
+
+	rec, err := policy2record(ptype, rule)
+	if err != nil {
+		return fmt.Errorf("failed to convert a policy to a record, %w", err)
+	}
+
+	if err := remove(ctx, unit.DB, rec); err != nil {
+		return fmt.Errorf("failed to add a record, %w", err)
+	}
+
 	return nil
 }
 
@@ -196,5 +192,59 @@ func (unit *Storage) RemoveFilteredPolicy(
 	fieldIndex int,
 	fieldValues ...string,
 ) error {
+	return nil
+}
+
+// AddPolicies adds policy rules to the storage.
+// This is part of the Auto-Save feature.
+func (unit *Storage) AddPolicies(sec, ptype string, rules [][]string) error {
+	txw := txwrapper.New(unit.DB)
+	ctx := context.Background()
+
+	if err := txw.StartTx(ctx, nil); err != nil {
+		return fmt.Errorf("failed to make a transaction, %w", err)
+	}
+
+	for _, rule := range rules {
+		rec, err := policy2record(ptype, rule)
+		if err != nil {
+			return fmt.Errorf("failed to convert a policy to a record, %w", err)
+		}
+
+		err = add(ctx, txw.Tx(), rec)
+		txw.Error(err)
+	}
+
+	if err := txw.TransactionEnd(); err != nil {
+		return fmt.Errorf("failed to commit a transaction, %w", err)
+	}
+
+	return nil
+}
+
+// RemovePolicies removes policy rules from the storage.
+// This is part of the Auto-Save feature.
+func (unit *Storage) RemovePolicies(sec, ptype string, rules [][]string) error {
+	txw := txwrapper.New(unit.DB)
+	ctx := context.Background()
+
+	if err := txw.StartTx(ctx, nil); err != nil {
+		return fmt.Errorf("failed to make a transaction, %w", err)
+	}
+
+	for _, rule := range rules {
+		rec, err := policy2record(ptype, rule)
+		if err != nil {
+			return fmt.Errorf("failed to convert a policy to a record, %w", err)
+		}
+
+		err = remove(ctx, txw.Tx(), rec)
+		txw.Error(err)
+	}
+
+	if err := txw.TransactionEnd(); err != nil {
+		return fmt.Errorf("failed to commit a transaction, %w", err)
+	}
+
 	return nil
 }
